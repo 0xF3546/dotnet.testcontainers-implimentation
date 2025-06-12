@@ -108,5 +108,27 @@ namespace test_containers.Tests
                 Assert.AreEqual("value", getResult.ToString());
             }
         }
+
+        [Test]
+        public async Task TestNginxContainer()
+        {
+            // Create a new instance of an Nginx container.
+            var nginxContainer = new ContainerBuilder()
+              .WithImage("nginx:latest")
+              .WithPortBinding(80, true)
+              .WithWaitStrategy(Wait.ForUnixContainer().UntilPortIsAvailable(80))
+              .Build();
+
+            // Start the container.
+            await nginxContainer.StartAsync()
+              .ConfigureAwait(false);
+
+            using var httpClient = new HttpClient();
+            var response = await httpClient.GetAsync($"http://{nginxContainer.Hostname}:{nginxContainer.GetMappedPublicPort(80)}");
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            Assert.IsTrue(content.Contains("Welcome to nginx"));
+        }
     }
 }
